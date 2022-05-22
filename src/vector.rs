@@ -9,13 +9,13 @@ pub enum VectorOpError {
 
 type Result<T> = std::result::Result<T, VectorOpError>;
 
-pub trait Vector: Sized + DerefMut<Target = [f64]> + From<Vec<f64>> + FromIterator<f64> {
+pub trait Vector:
+    Sized + DerefMut<Target = [f64]> + From<Vec<f64>> + FromIterator<f64> + Into<Vec<f64>>
+{
     type TransposeTo: Vector;
 
-    fn to_vec(self) -> Vec<f64>;
-
     fn transpose(self) -> Self::TransposeTo {
-        self.to_vec().into()
+        self.into().into()
     }
 
     fn new(size: usize) -> Self {
@@ -110,12 +110,14 @@ macro_rules! impl_vector {
             }
         }
 
-        impl Vector for $name {
-            type TransposeTo = $transpose_to;
-
-            fn to_vec(self) -> Vec<f64> {
+        impl Into<Vec<f64>> for $name {
+            fn into(self) -> Vec<f64> {
                 self.0
             }
+        }
+
+        impl Vector for $name {
+            type TransposeTo = $transpose_to;
         }
 
         impl Neg for $name {
