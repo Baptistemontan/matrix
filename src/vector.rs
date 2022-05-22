@@ -1,4 +1,6 @@
-use std::ops::{Deref, DerefMut, Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
+use std::ops::{
+    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VectorOpError {
@@ -142,7 +144,6 @@ macro_rules! impl_vector {
             }
         }
 
-
         // Add
         impl Add<&$name> for $name {
             type Output = Self;
@@ -182,7 +183,6 @@ macro_rules! impl_vector {
                 *self -= &other;
             }
         }
-
 
         // Add
         impl Sub<&$name> for $name {
@@ -227,11 +227,28 @@ macro_rules! impl_vector {
             }
         }
 
+        impl Mul<$name> for f64 {
+            type Output = $name;
+
+            fn mul(self, mut vector: $name) -> Self::Output {
+                vector *= self;
+                vector
+            }
+        }
+
         impl Mul<f64> for &$name {
             type Output = $name;
 
             fn mul(self, scalar: f64) -> Self::Output {
                 self.map(|x| x * scalar)
+            }
+        }
+
+        impl Mul<&$name> for f64 {
+            type Output = $name;
+
+            fn mul(self, vector: &$name) -> Self::Output {
+                vector * self
             }
         }
 
@@ -251,6 +268,15 @@ macro_rules! impl_vector {
             }
         }
 
+        impl Div<$name> for f64 {
+            type Output = $name;
+
+            fn div(self, mut vector: $name) -> Self::Output {
+                vector /= self;
+                vector
+            }
+        }
+
         impl Div<f64> for &$name {
             type Output = $name;
 
@@ -259,7 +285,13 @@ macro_rules! impl_vector {
             }
         }
 
+        impl Div<&$name> for f64 {
+            type Output = $name;
 
+            fn div(self, vector: &$name) -> Self::Output {
+                vector / self
+            }
+        }
     };
 }
 
