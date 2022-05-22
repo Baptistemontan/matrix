@@ -118,10 +118,6 @@ macro_rules! impl_vector {
             }
         }
 
-        // Add + Sub + Neg + Mul<f64> + Div<f64>
-        // all of them Assign
-
-        // Neg
         impl Neg for $name {
             type Output = Self;
 
@@ -131,7 +127,14 @@ macro_rules! impl_vector {
             }
         }
 
-        // AddAssign
+        impl Neg for &$name {
+            type Output = $name;
+
+            fn neg(self) -> Self::Output {
+                self.map(f64::neg)
+            }
+        }
+
         impl AddAssign<&$name> for $name {
             fn add_assign(&mut self, other: &Self) {
                 self.combine_mut(other, f64::add_assign)
@@ -144,7 +147,6 @@ macro_rules! impl_vector {
             }
         }
 
-        // Add
         impl Add<&$name> for $name {
             type Output = Self;
 
@@ -171,7 +173,6 @@ macro_rules! impl_vector {
             }
         }
 
-        // AddAssign
         impl SubAssign<&$name> for $name {
             fn sub_assign(&mut self, other: &Self) {
                 self.combine_mut(other, f64::sub_assign)
@@ -184,7 +185,6 @@ macro_rules! impl_vector {
             }
         }
 
-        // Add
         impl Sub<&$name> for $name {
             type Output = Self;
 
@@ -211,7 +211,6 @@ macro_rules! impl_vector {
             }
         }
 
-        // MulAssign
         impl MulAssign<f64> for $name {
             fn mul_assign(&mut self, scalar: f64) {
                 self.map_mut(|x| *x *= scalar)
@@ -252,7 +251,6 @@ macro_rules! impl_vector {
             }
         }
 
-        // DivAssign
         impl DivAssign<f64> for $name {
             fn div_assign(&mut self, scalar: f64) {
                 self.map_mut(|x| *x /= scalar)
@@ -297,3 +295,371 @@ macro_rules! impl_vector {
 
 impl_vector!(RowVector, ColumnVector);
 impl_vector!(ColumnVector, RowVector);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_transpose() {
+        let row = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let col = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let transposed = row.transpose();
+        assert_eq!(transposed, col);
+
+        let row = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let col = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let transposed = col.transpose();
+        assert_eq!(transposed, row);
+    }
+
+    #[test]
+    fn test_add_row_owned() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        let sum = x + y;
+        assert_eq!(sum, RowVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_col_owned() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        let sum = x + y;
+        assert_eq!(sum, ColumnVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_row_ref() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        let sum = &x + &y;
+        assert_eq!(sum, RowVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_col_ref() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        let sum = &x + &y;
+        assert_eq!(sum, ColumnVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_assign_row_owned() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        x += y;
+        assert_eq!(x, RowVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_assign_col_owned() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        x += y;
+        assert_eq!(x, ColumnVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_assign_row_ref() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        x += &y;
+        assert_eq!(x, RowVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_add_assign_col_ref() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        x += &y;
+        assert_eq!(x, ColumnVector::from(vec![3.0, 9.0, 4.0]));
+    }
+
+    #[test]
+    fn test_sub_row_owned() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        let diff = x - y;
+        assert_eq!(diff, RowVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_col_owned() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        let diff = x - y;
+        assert_eq!(diff, ColumnVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_row_ref() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        let diff = &x - &y;
+        assert_eq!(diff, RowVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_col_ref() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        let diff = &x - &y;
+        assert_eq!(diff, ColumnVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_assign_row_owned() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        x -= y;
+        assert_eq!(x, RowVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_assign_col_owned() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        x -= y;
+        assert_eq!(x, ColumnVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_assign_row_ref() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![2.0, 7.0, 1.0]);
+        x -= &y;
+        assert_eq!(x, RowVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_sub_assign_col_ref() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![2.0, 7.0, 1.0]);
+        x -= &y;
+        assert_eq!(x, ColumnVector::from(vec![-1.0, -5.0, 2.0]));
+    }
+
+    #[test]
+    fn test_mul_row_owned() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let prod = x * y;
+        assert_eq!(prod, RowVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_mul_col_owned() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let prod = x * y;
+        assert_eq!(prod, ColumnVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_mul_row_ref() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let prod = &x * y;
+        assert_eq!(prod, RowVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_mul_col_ref() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let prod = &x * y;
+        assert_eq!(prod, ColumnVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_mul_assign_row() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        x *= y;
+        assert_eq!(x, RowVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_mul_assign_col() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        x *= y;
+        assert_eq!(x, ColumnVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_div_row_owned() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let quot = x / y;
+        assert_eq!(quot, RowVector::from(vec![0.1, 0.2, 0.3]));
+    }
+
+    #[test]
+    fn test_div_col_owned() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let quot = x / y;
+        assert_eq!(quot, ColumnVector::from(vec![0.1, 0.2, 0.3]));
+    }
+
+    #[test]
+    fn test_div_row_ref() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let quot = &x / y;
+        assert_eq!(quot, RowVector::from(vec![0.1, 0.2, 0.3]));
+    }
+
+    #[test]
+    fn test_div_col_ref() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        let quot = &x / y;
+        assert_eq!(quot, ColumnVector::from(vec![0.1, 0.2, 0.3]));
+    }
+
+    #[test]
+    fn test_div_assign_row() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        x /= y;
+        assert_eq!(x, RowVector::from(vec![0.1, 0.2, 0.3]));
+    }
+
+    #[test]
+    fn test_div_assign_col() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = 10.0;
+        x /= y;
+        assert_eq!(x, ColumnVector::from(vec![0.1, 0.2, 0.3]));
+    }
+
+    #[test]
+    fn test_neg_row_owned() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let neg = -x;
+        assert_eq!(neg, RowVector::from(vec![-1.0, -2.0, -3.0]));
+    }
+
+    #[test]
+    fn test_neg_col_owned() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let neg = -x;
+        assert_eq!(neg, ColumnVector::from(vec![-1.0, -2.0, -3.0]));
+    }
+
+    #[test]
+    fn test_neg_row_ref() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let neg = -&x;
+        assert_eq!(neg, RowVector::from(vec![-1.0, -2.0, -3.0]));
+    }
+
+    #[test]
+    fn test_neg_col_ref() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let neg = -&x;
+        assert_eq!(neg, ColumnVector::from(vec![-1.0, -2.0, -3.0]));
+    }
+
+    #[test]
+    fn test_indexing_row() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        assert_eq!(x[0], 1.0);
+        assert_eq!(x[1], 2.0);
+        assert_eq!(x[2], 3.0);
+    }
+
+    #[test]
+    fn test_indexing_col() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        assert_eq!(x[0], 1.0);
+        assert_eq!(x[1], 2.0);
+        assert_eq!(x[2], 3.0);
+    }
+
+    #[test]
+    fn test_indexing_row_mut() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        x[0] = 10.0;
+        x[1] = 20.0;
+        x[2] = 30.0;
+        assert_eq!(x, RowVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    fn test_indexing_col_mut() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        x[0] = 10.0;
+        x[1] = 20.0;
+        x[2] = 30.0;
+        assert_eq!(x, ColumnVector::from(vec![10.0, 20.0, 30.0]));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_different_size_row() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![1.0, 2.0]);
+        let _z = x + y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_different_size_col() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 2.0]);
+        let _z = x + y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_sub_different_size_row() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![1.0, 2.0]);
+        let _z = x - y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_sub_different_size_col() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 2.0]);
+        let _z = x - y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_assign_different_size_row() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![1.0, 2.0]);
+        x += y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_assign_different_size_col() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 2.0]);
+        x += y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_sub_assign_different_size_row() {
+        let mut x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = RowVector::from(vec![1.0, 2.0]);
+        x -= y;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_sub_assign_different_size_col() {
+        let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 2.0]);
+        x -= y;
+    }
+}
