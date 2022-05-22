@@ -2,8 +2,6 @@ use std::ops::{Deref, DerefMut};
 
 use crate::vector::RowVector;
 
-
-
 pub struct Matrix(Vec<RowVector>);
 
 impl Deref for Matrix {
