@@ -23,13 +23,4 @@ mod tests {
     use crate::vector::Vector;
 
     use super::*;
-
-    #[test]
-    fn test_1() {
-        let mut mat = Matrix(vec![RowVector::new(2); 4]);
-
-        mat[0][1] = 4.0;
-
-        assert_eq!(mat[0][1], 4.0);
-    }
 }
