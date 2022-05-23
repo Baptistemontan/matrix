@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_init() {
-        let matrix: Matrix = Matrix::new(3, 3);
+        let matrix = Matrix::new(3, 3);
         assert_eq!(matrix.size(), (3, 3));
     }
 }
