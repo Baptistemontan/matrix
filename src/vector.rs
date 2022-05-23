@@ -4,7 +4,10 @@ use std::{
     ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{dot_product::DotProduct, matrix::Matrix};
+use crate::{
+    dot_product::DotProduct,
+    matrix::{Matrix, Matrixf32},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VectorSizeMismatchError(usize, usize);
@@ -40,11 +43,7 @@ pub trait Vector<T: Copy + Default + DivAssign>:
         vec![value; size].into()
     }
 
-    fn try_combine<F: FnMut(T, T) -> T>(
-        &self,
-        other: &Self,
-        mut combiner: F,
-    ) -> Result<Self> {
+    fn try_combine<F: FnMut(T, T) -> T>(&self, other: &Self, mut combiner: F) -> Result<Self> {
         if self.len() != other.len() {
             Err(VectorSizeMismatchError(self.len(), other.len()))
         } else {
@@ -377,13 +376,13 @@ impl DotProduct<&ColumnVectorf32> for &RowVectorf32 {
     }
 }
 
-// impl DotProduct<&RowVectorf32> for &ColumnVectorf32 {
-//     type Output = Matrixf32;
+impl DotProduct<&RowVectorf32> for &ColumnVectorf32 {
+    type Output = Matrixf32;
 
-//     fn dot_product(self, row: &RowVectorf32) -> Self::Output {
-//         self.iter().copied().map(|x| row * x).collect()
-//     }
-// }
+    fn dot_product(self, row: &RowVectorf32) -> Self::Output {
+        self.iter().copied().map(|x| row * x).collect()
+    }
+}
 
 #[cfg(test)]
 mod tests {
