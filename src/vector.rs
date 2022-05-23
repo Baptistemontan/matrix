@@ -23,24 +23,24 @@ impl Error for VectorSizeMismatchError {}
 
 type Result<T> = std::result::Result<T, VectorSizeMismatchError>;
 
-pub trait Vector:
-    Sized + DerefMut<Target = [f64]> + From<Vec<f64>> + FromIterator<f64> + Into<Vec<f64>> + Clone
+pub trait Vector<T: Copy + Default + DivAssign>:
+    Sized + DerefMut<Target = [T]> + From<Vec<T>> + FromIterator<T> + Into<Vec<T>> + Clone
 {
-    type TransposeTo: Vector;
+    type TransposeTo: Vector<T>;
 
     fn transpose(self) -> Self::TransposeTo {
         self.into().into()
     }
 
     fn new(size: usize) -> Self {
-        vec![0.0; size].into()
+        vec![T::default(); size].into()
     }
 
-    fn new_filled(size: usize, value: f64) -> Self {
+    fn new_filled(size: usize, value: T) -> Self {
         vec![value; size].into()
     }
 
-    fn try_combine<F: FnMut(f64, f64) -> f64>(
+    fn try_combine<F: FnMut(T, T) -> T>(
         &self,
         other: &Self,
         mut combiner: F,
@@ -56,11 +56,11 @@ pub trait Vector:
         }
     }
 
-    fn combine<F: FnMut(f64, f64) -> f64>(&self, other: &Self, combiner: F) -> Self {
+    fn combine<F: FnMut(T, T) -> T>(&self, other: &Self, combiner: F) -> Self {
         self.try_combine(other, combiner).unwrap()
     }
 
-    fn try_combine_mut<F: FnMut(&mut f64, f64)>(
+    fn try_combine_mut<F: FnMut(&mut T, T)>(
         &mut self,
         other: &Self,
         mut combiner: F,
@@ -75,19 +75,19 @@ pub trait Vector:
         }
     }
 
-    fn combine_mut<F: FnMut(&mut f64, f64)>(&mut self, other: &Self, combiner: F) {
+    fn combine_mut<F: FnMut(&mut T, T)>(&mut self, other: &Self, combiner: F) {
         self.try_combine_mut(other, combiner).unwrap();
     }
 
-    fn map<F: FnMut(f64) -> f64>(&self, map_fn: F) -> Self {
+    fn map<F: FnMut(T) -> T>(&self, map_fn: F) -> Self {
         self.iter().copied().map(map_fn).collect()
     }
 
-    fn map_mut<F: FnMut(&mut f64)>(&mut self, map_fn: F) {
+    fn map_mut<F: FnMut(&mut T)>(&mut self, map_fn: F) {
         self.iter_mut().for_each(map_fn);
     }
 
-    fn norme(&self) -> f64;
+    fn norme(&self) -> T;
 
     fn normalize(&mut self) {
         let norme = self.norme();
@@ -102,12 +102,12 @@ pub trait Vector:
 }
 
 macro_rules! impl_vector {
-    ($name:ident, $transpose_to:ident) => {
+    ($name:ident, $transpose_to:ident, $data_type:ident) => {
         #[derive(Debug, PartialEq, Clone)]
-        pub struct $name(Vec<f64>);
+        pub struct $name(Vec<$data_type>);
 
         impl Deref for $name {
-            type Target = [f64];
+            type Target = [$data_type];
 
             fn deref(&self) -> &Self::Target {
                 &self.0
@@ -120,35 +120,35 @@ macro_rules! impl_vector {
             }
         }
 
-        impl From<Vec<f64>> for $name {
-            fn from(data: Vec<f64>) -> Self {
+        impl From<Vec<$data_type>> for $name {
+            fn from(data: Vec<$data_type>) -> Self {
                 $name(data)
             }
         }
 
-        impl<const N: usize> From<[f64; N]> for $name {
-            fn from(data: [f64; N]) -> Self {
+        impl<const N: usize> From<[$data_type; N]> for $name {
+            fn from(data: [$data_type; N]) -> Self {
                 $name(data.into())
             }
         }
 
-        impl FromIterator<f64> for $name {
-            fn from_iter<I: IntoIterator<Item = f64>>(iter: I) -> Self {
-                let data: Vec<f64> = iter.into_iter().collect();
+        impl FromIterator<$data_type> for $name {
+            fn from_iter<I: IntoIterator<Item = $data_type>>(iter: I) -> Self {
+                let data: Vec<$data_type> = iter.into_iter().collect();
                 data.into()
             }
         }
 
-        impl Into<Vec<f64>> for $name {
-            fn into(self) -> Vec<f64> {
+        impl Into<Vec<$data_type>> for $name {
+            fn into(self) -> Vec<$data_type> {
                 self.0
             }
         }
 
-        impl Vector for $name {
+        impl Vector<$data_type> for $name {
             type TransposeTo = $transpose_to;
 
-            fn norme(&self) -> f64 {
+            fn norme(&self) -> $data_type {
                 self.dot_product(self).unwrap().sqrt()
             }
         }
@@ -166,13 +166,13 @@ macro_rules! impl_vector {
             type Output = $name;
 
             fn neg(self) -> Self::Output {
-                self.map(f64::neg)
+                self.map($data_type::neg)
             }
         }
 
         impl AddAssign<&$name> for $name {
             fn add_assign(&mut self, other: &Self) {
-                self.combine_mut(other, f64::add_assign)
+                self.combine_mut(other, $data_type::add_assign)
             }
         }
 
@@ -204,13 +204,13 @@ macro_rules! impl_vector {
             type Output = $name;
 
             fn add(self, other: Self) -> Self::Output {
-                self.combine(other, f64::add)
+                self.combine(other, $data_type::add)
             }
         }
 
         impl SubAssign<&$name> for $name {
             fn sub_assign(&mut self, other: &Self) {
-                self.combine_mut(other, f64::sub_assign)
+                self.combine_mut(other, $data_type::sub_assign)
             }
         }
 
@@ -242,26 +242,26 @@ macro_rules! impl_vector {
             type Output = $name;
 
             fn sub(self, other: Self) -> Self::Output {
-                self.combine(other, f64::sub)
+                self.combine(other, $data_type::sub)
             }
         }
 
-        impl MulAssign<f64> for $name {
-            fn mul_assign(&mut self, scalar: f64) {
+        impl MulAssign<$data_type> for $name {
+            fn mul_assign(&mut self, scalar: $data_type) {
                 self.map_mut(|x| *x *= scalar)
             }
         }
 
-        impl Mul<f64> for $name {
+        impl Mul<$data_type> for $name {
             type Output = Self;
 
-            fn mul(mut self, scalar: f64) -> Self::Output {
+            fn mul(mut self, scalar: $data_type) -> Self::Output {
                 self *= scalar;
                 self
             }
         }
 
-        impl Mul<$name> for f64 {
+        impl Mul<$name> for $data_type {
             type Output = $name;
 
             fn mul(self, mut vector: $name) -> Self::Output {
@@ -270,15 +270,15 @@ macro_rules! impl_vector {
             }
         }
 
-        impl Mul<f64> for &$name {
+        impl Mul<$data_type> for &$name {
             type Output = $name;
 
-            fn mul(self, scalar: f64) -> Self::Output {
+            fn mul(self, scalar: $data_type) -> Self::Output {
                 self.map(|x| x * scalar)
             }
         }
 
-        impl Mul<&$name> for f64 {
+        impl Mul<&$name> for $data_type {
             type Output = $name;
 
             fn mul(self, vector: &$name) -> Self::Output {
@@ -286,22 +286,22 @@ macro_rules! impl_vector {
             }
         }
 
-        impl DivAssign<f64> for $name {
-            fn div_assign(&mut self, scalar: f64) {
+        impl DivAssign<$data_type> for $name {
+            fn div_assign(&mut self, scalar: $data_type) {
                 self.map_mut(|x| *x /= scalar)
             }
         }
 
-        impl Div<f64> for $name {
+        impl Div<$data_type> for $name {
             type Output = Self;
 
-            fn div(mut self, scalar: f64) -> Self::Output {
+            fn div(mut self, scalar: $data_type) -> Self::Output {
                 self /= scalar;
                 self
             }
         }
 
-        impl Div<$name> for f64 {
+        impl Div<$name> for $data_type {
             type Output = $name;
 
             fn div(self, mut vector: $name) -> Self::Output {
@@ -310,15 +310,15 @@ macro_rules! impl_vector {
             }
         }
 
-        impl Div<f64> for &$name {
+        impl Div<$data_type> for &$name {
             type Output = $name;
 
-            fn div(self, scalar: f64) -> Self::Output {
+            fn div(self, scalar: $data_type) -> Self::Output {
                 self.map(|x| x / scalar)
             }
         }
 
-        impl Div<&$name> for f64 {
+        impl Div<&$name> for $data_type {
             type Output = $name;
 
             fn div(self, vector: &$name) -> Self::Output {
@@ -327,7 +327,7 @@ macro_rules! impl_vector {
         }
 
         impl DotProduct for &$name {
-            type Output = Result<f64>;
+            type Output = Result<$data_type>;
 
             fn dot_product(self, other: Self) -> Self::Output {
                 if self.len() != other.len() {
@@ -340,8 +340,10 @@ macro_rules! impl_vector {
     };
 }
 
-impl_vector!(RowVector, ColumnVector);
-impl_vector!(ColumnVector, RowVector);
+impl_vector!(RowVector, ColumnVector, f64);
+impl_vector!(ColumnVector, RowVector, f64);
+impl_vector!(RowVectorf32, ColumnVectorf32, f32);
+impl_vector!(ColumnVectorf32, RowVectorf32, f32);
 
 impl DotProduct<&ColumnVector> for &RowVector {
     type Output = Result<f64>;
@@ -362,6 +364,26 @@ impl DotProduct<&RowVector> for &ColumnVector {
         self.iter().copied().map(|x| row * x).collect()
     }
 }
+
+impl DotProduct<&ColumnVectorf32> for &RowVectorf32 {
+    type Output = Result<f32>;
+
+    fn dot_product(self, col: &ColumnVectorf32) -> Self::Output {
+        if self.len() != col.len() {
+            Err(VectorSizeMismatchError(self.len(), col.len()))
+        } else {
+            Ok(self.iter().zip(col.iter()).map(|(x, y)| x * y).sum())
+        }
+    }
+}
+
+// impl DotProduct<&RowVectorf32> for &ColumnVectorf32 {
+//     type Output = Matrixf32;
+
+//     fn dot_product(self, row: &RowVectorf32) -> Self::Output {
+//         self.iter().copied().map(|x| row * x).collect()
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
