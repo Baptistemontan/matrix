@@ -1,12 +1,8 @@
-#![allow(dead_code, unused)]
-
 use std::{
-    error::Error,
-    fmt::Display,
     ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{dot_product::DotProduct, matrix::Matrix};
+use crate::{dot_product::DotProduct};
 
 pub trait StaticVector<const N: usize>:
     Sized + DerefMut<Target = [f64; N]> + Clone + From<[f64; N]> + Into<[f64; N]> + Default
@@ -26,11 +22,12 @@ pub trait StaticVector<const N: usize>:
     }
 
     fn combine<F: FnMut(f64, f64) -> f64>(&self, other: &Self, mut combiner: F) -> Self {
-        let mut slice = [0.0; N];
-        for i in 0..N {
-            slice[i] = combiner(self[i], other[i]);
-        }
-        slice.into()
+        let mut i = 0;
+        self.deref().map(|x| {
+            let val = combiner(x, other[i]);
+            i += 1;
+            val
+        }).into()
     }
 
     fn combine_mut<F: FnMut(&mut f64, f64)>(&mut self, other: &Self, mut combiner: F) {
@@ -39,12 +36,8 @@ pub trait StaticVector<const N: usize>:
         });
     }
 
-    fn map<F: FnMut(f64) -> f64>(&self, mut map_fn: F) -> Self {
-        let mut slice = [0.0; N];
-        for i in 0..N {
-            slice[i] = map_fn(self[i]);
-        }
-        slice.into()
+    fn map<F: FnMut(f64) -> f64>(&self, map_fn: F) -> Self {
+        self.deref().map(map_fn).into()
     }
 
     fn map_mut<F: FnMut(&mut f64)>(&mut self, map_fn: F) {
