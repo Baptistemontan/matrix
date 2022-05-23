@@ -640,13 +640,7 @@ mod tests {
         let x = StaticRowVector::from([1.0, 2.0, 3.0]);
         let y = StaticColumnVector::from([3.0, 2.0]);
         let mat = y.dot_product(&x);
-        assert_eq!(
-            mat,
-            StaticMatrix::from([
-                StaticRowVector::from([3.0, 6.0, 9.0]),
-                StaticRowVector::from([2.0, 4.0, 6.0])
-            ])
-        );
+        assert_eq!(mat, StaticMatrix::from([[3.0, 6.0, 9.0], [2.0, 4.0, 6.0]]));
     }
 
     #[test]

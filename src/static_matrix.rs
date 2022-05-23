@@ -49,6 +49,12 @@ impl<const N: usize, const M: usize> From<[StaticRowVector<M>; N]> for StaticMat
     }
 }
 
+impl<const N: usize, const M: usize> From<[[f64; M]; N]> for StaticMatrix<N, M> {
+    fn from(data: [[f64; M]; N]) -> Self {
+        data.map(StaticRowVector::from).into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
