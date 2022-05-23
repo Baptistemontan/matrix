@@ -34,9 +34,19 @@ impl Matrix {
     pub fn new_filled(rows: usize, cols: usize, value: f64) -> Self {
         Matrix(vec![RowVector::new_filled(cols, value); rows])
     }
+
+    pub fn size(&self) -> (usize, usize) {
+        (self.0.len(), self.0[0].len())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_init() {
+        let matrix: Matrix = Matrix::new(3, 3);
+        assert_eq!(matrix.size(), (3, 3));
+    }
 }

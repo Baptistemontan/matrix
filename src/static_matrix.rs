@@ -37,6 +37,10 @@ impl<const N: usize, const M: usize> StaticMatrix<N, M> {
         // same thing as Default::default()
         [(); N].map(|_| StaticRowVector::new_filled(value)).into()
     }
+
+    pub fn size(&self) -> (usize, usize) {
+        (N, M)
+    }
 }
 
 impl<const N: usize, const M: usize> From<[StaticRowVector<M>; N]> for StaticMatrix<N, M> {
@@ -48,4 +52,10 @@ impl<const N: usize, const M: usize> From<[StaticRowVector<M>; N]> for StaticMat
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_default() {
+        let matrix: StaticMatrix<3, 3> = StaticMatrix::default();
+        assert_eq!(matrix.size(), (3, 3));
+    }
 }
