@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, Index, IndexMut};
 
 use crate::vector::{RowVector, Vector};
 
@@ -13,20 +13,40 @@ impl Deref for Matrix {
     }
 }
 
-impl DerefMut for Matrix {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        // DerefMut is a BAD THING to implement, the entire system rely on the fact that
-        // each row is the same size, but here we allow the user to override one of the row with
-        // a vector of a different size
-        // BAD, VERY BAD
-        // but eh, f*ck it
-        &mut self.0
+// keeping this implementation for documentation on why it is not implemented
+// impl DerefMut for Matrix {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         // DerefMut is a BAD THING to implement, the entire system rely on the fact that
+//         // each row is the same size, but here we allow the user to override one of the row with
+//         // a vector of a different size
+//         // BAD, VERY BAD
+//         &mut self.0
+//     }
+// }
+
+impl Index<(usize, usize)> for Matrix {
+    type Output = f64;
+
+    fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
+        &self.0[row][col]
+    }
+}
+
+impl IndexMut<(usize, usize)> for Matrix {
+    fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
+        &mut self.0[row][col]
     }
 }
 
 impl FromIterator<RowVector> for Matrix {
     fn from_iter<T: IntoIterator<Item = RowVector>>(iter: T) -> Self {
         let data = iter.into_iter().collect();
+        Matrix(data)
+    }
+}
+
+impl From<Vec<RowVector>> for Matrix {
+    fn from(data: Vec<RowVector>) -> Self {
         Matrix(data)
     }
 }

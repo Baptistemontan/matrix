@@ -760,10 +760,9 @@ mod tests {
     fn test_dot_product_col_row() {
         let x = RowVector::from(vec![1.0, 2.0, 3.0]);
         let y = ColumnVector::from(vec![3.0, 2.0]);
-        let mut expected_matrix = Matrix::new(y.len(), x.len());
         let mat = y.dot_product(&x);
-        expected_matrix[0] = vec![3.0, 6.0, 9.0].into();
-        expected_matrix[1] = vec![2.0, 4.0, 6.0].into();
+        let expected_matrix =
+            Matrix::from(vec![vec![3.0, 6.0, 9.0].into(), vec![2.0, 4.0, 6.0].into()]);
         assert_eq!(mat, expected_matrix);
     }
 }
