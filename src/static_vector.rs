@@ -65,6 +65,14 @@ macro_rules! impl_vector {
         #[derive(Debug, PartialEq, Clone)]
         pub struct $name<const N: usize>([f64; N]);
 
+        impl $name<3> {
+            pub fn cross_product(&self, other: &Self) -> Self {
+                let Self([a1, a2, a3]) = self;
+                let Self([b1, b2, b3]) = other;
+                Self([a2 * b3 - a3 * b2, a3 * b1 - a1 * b3, a1 * b2 - a2 * b1])
+            }
+        }
+
         impl<const N: usize> Default for $name<N> {
             // can't derive Default for [f64; N]
             fn default() -> Self {
@@ -639,5 +647,13 @@ mod tests {
                 StaticRowVector::from([2.0, 4.0, 6.0])
             ])
         );
+    }
+
+    #[test]
+    fn test_cross_product() {
+        let x = StaticColumnVector::from([1.0, 2.0, 3.0]);
+        let y = StaticColumnVector::from([1.0, 0.0, 2.0]);
+        let cross = x.cross_product(&y);
+        assert_eq!(cross, StaticColumnVector::from([4.0, 1.0, -2.0]));
     }
 }
