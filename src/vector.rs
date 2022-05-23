@@ -151,7 +151,7 @@ macro_rules! impl_vector {
             type Output = Self;
 
             fn neg(mut self) -> Self::Output {
-                self *= -1.0;
+                self.map_mut(|x| *x = x.neg());
                 self
             }
         }
