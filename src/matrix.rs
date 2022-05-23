@@ -51,15 +51,15 @@ impl From<Vec<RowVector>> for Matrix {
     }
 }
 
-impl<const N:usize> From<[RowVector; N]> for Matrix {
+impl<const N: usize> From<[RowVector; N]> for Matrix {
     fn from(data: [RowVector; N]) -> Self {
         Matrix(data.into_iter().collect())
     }
 }
 
-impl<const N:usize, const M: usize> From<[[f64; M]; N]> for Matrix {
+impl<const N: usize, const M: usize> From<[[f64; M]; N]> for Matrix {
     fn from(data: [[f64; M]; N]) -> Self {
-        Matrix(data.into_iter().map(|row| RowVector::from(row)).collect())
+        Matrix(data.into_iter().map(RowVector::from).collect())
     }
 }
 

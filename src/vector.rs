@@ -767,8 +767,7 @@ mod tests {
         let x = RowVector::from([1.0, 2.0, 3.0]);
         let y = ColumnVector::from([3.0, 2.0]);
         let mat = y.dot_product(&x);
-        let expected_matrix =
-            Matrix::from([[3.0, 6.0, 9.0], [2.0, 4.0, 6.0]]);
+        let expected_matrix = Matrix::from([[3.0, 6.0, 9.0], [2.0, 4.0, 6.0]]);
         assert_eq!(mat, expected_matrix);
     }
 }
