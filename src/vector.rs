@@ -320,6 +320,18 @@ macro_rules! impl_vector {
 impl_vector!(RowVector, ColumnVector);
 impl_vector!(ColumnVector, RowVector);
 
+impl DotProduct<&ColumnVector> for &RowVector {
+    type Output = Result<f64>;
+
+    fn dot_product(self, other: &ColumnVector) -> Self::Output {
+        if self.len() != other.len() {
+            Err(VectorSizeMismatchError(self.len(), other.len()))
+        } else {
+            Ok(self.iter().zip(other.iter()).map(|(x, y)| x * y).sum())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -693,5 +705,29 @@ mod tests {
         let y = ColumnVector::from(vec![1.0, 0.0, 2.0]);
         let dot = x.dot_product(&y).unwrap();
         assert_eq!(dot, 7.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_dot_product_different_size() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 0.0]);
+        let _dot = x.dot_product(&y).unwrap();
+    }
+
+    #[test]
+    fn test_dot_product_row_col() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 0.0, 2.0]);
+        let dot = x.dot_product(&y).unwrap();
+        assert_eq!(dot, 7.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_dot_product_row_col_different_size() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 0.0]);
+        let _dot = x.dot_product(&y).unwrap();
     }
 }
