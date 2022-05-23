@@ -1,5 +1,5 @@
-use std::{
-    ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+use std::ops::{
+    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
 use crate::{dot_product::DotProduct, static_matrix::StaticMatrix};
@@ -23,11 +23,13 @@ pub trait StaticVector<const N: usize>:
 
     fn combine<F: FnMut(f64, f64) -> f64>(&self, other: &Self, mut combiner: F) -> Self {
         let mut i = 0;
-        self.deref().map(|x| {
-            let val = combiner(x, other[i]);
-            i += 1;
-            val
-        }).into()
+        self.deref()
+            .map(|x| {
+                let val = combiner(x, other[i]);
+                i += 1;
+                val
+            })
+            .into()
     }
 
     fn combine_mut<F: FnMut(&mut f64, f64)>(&mut self, other: &Self, mut combiner: F) {
@@ -630,6 +632,12 @@ mod tests {
         let x = StaticRowVector::from([1.0, 2.0, 3.0]);
         let y = StaticColumnVector::from([3.0, 2.0]);
         let mat = y.dot_product(&x);
-        assert_eq!(mat, StaticMatrix::from([StaticRowVector::from([3.0, 6.0, 9.0]), StaticRowVector::from([2.0, 4.0, 6.0])]));
+        assert_eq!(
+            mat,
+            StaticMatrix::from([
+                StaticRowVector::from([3.0, 6.0, 9.0]),
+                StaticRowVector::from([2.0, 4.0, 6.0])
+            ])
+        );
     }
 }
