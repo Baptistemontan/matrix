@@ -1,15 +1,21 @@
-use std::{ops::{
-    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
-}, fmt::Display, error::Error};
+use std::{
+    error::Error,
+    fmt::Display,
+    ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+};
 
-use crate::dot_product::DotProduct;
+use crate::{dot_product::DotProduct, matrix::Matrix};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VectorSizeMismatchError(usize, usize);
 
 impl Display for VectorSizeMismatchError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Vector size mismatch: expected size {} but found size {}.", self.0, self.1)
+        write!(
+            f,
+            "Vector size mismatch: expected size {} but found size {}.",
+            self.0, self.1
+        )
     }
 }
 
@@ -18,7 +24,7 @@ impl Error for VectorSizeMismatchError {}
 type Result<T> = std::result::Result<T, VectorSizeMismatchError>;
 
 pub trait Vector:
-    Sized + DerefMut<Target = [f64]> + From<Vec<f64>> + FromIterator<f64> + Into<Vec<f64>>
+    Sized + DerefMut<Target = [f64]> + From<Vec<f64>> + FromIterator<f64> + Into<Vec<f64>> + Clone
 {
     type TransposeTo: Vector;
 
@@ -82,6 +88,17 @@ pub trait Vector:
     }
 
     fn norme(&self) -> f64;
+
+    fn normalize(&mut self) {
+        let norme = self.norme();
+        self.map_mut(|x| *x /= norme);
+    }
+
+    fn clone_normalized(&self) -> Self {
+        let mut v = self.clone();
+        v.normalize();
+        v
+    }
 }
 
 macro_rules! impl_vector {
@@ -323,12 +340,20 @@ impl_vector!(ColumnVector, RowVector);
 impl DotProduct<&ColumnVector> for &RowVector {
     type Output = Result<f64>;
 
-    fn dot_product(self, other: &ColumnVector) -> Self::Output {
-        if self.len() != other.len() {
-            Err(VectorSizeMismatchError(self.len(), other.len()))
+    fn dot_product(self, col: &ColumnVector) -> Self::Output {
+        if self.len() != col.len() {
+            Err(VectorSizeMismatchError(self.len(), col.len()))
         } else {
-            Ok(self.iter().zip(other.iter()).map(|(x, y)| x * y).sum())
+            Ok(self.iter().zip(col.iter()).map(|(x, y)| x * y).sum())
         }
+    }
+}
+
+impl DotProduct<&RowVector> for &ColumnVector {
+    type Output = Matrix;
+
+    fn dot_product(self, row: &RowVector) -> Self::Output {
+        self.iter().copied().map(|x| row * x).collect()
     }
 }
 
@@ -729,5 +754,16 @@ mod tests {
         let x = RowVector::from(vec![1.0, 2.0, 3.0]);
         let y = ColumnVector::from(vec![1.0, 0.0]);
         let _dot = x.dot_product(&y).unwrap();
+    }
+
+    #[test]
+    fn test_dot_product_col_row() {
+        let x = RowVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![3.0, 2.0]);
+        let mut expected_matrix = Matrix::new(y.len(), x.len());
+        let mat = y.dot_product(&x);
+        expected_matrix[0] = vec![3.0, 6.0, 9.0].into();
+        expected_matrix[1] = vec![2.0, 4.0, 6.0].into();
+        assert_eq!(mat, expected_matrix);
     }
 }
