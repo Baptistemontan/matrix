@@ -2,6 +2,8 @@ use std::ops::{
     Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
+use crate::dot_product::DotProduct;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VectorOpError {
     SizeMismatch(usize, usize),
@@ -73,9 +75,7 @@ pub trait Vector:
         self.iter_mut().for_each(map_fn);
     }
 
-    fn norme(&self) -> f64 {
-        todo!()
-    }
+    fn norme(&self) -> f64;
 }
 
 macro_rules! impl_vector {
@@ -118,6 +118,10 @@ macro_rules! impl_vector {
 
         impl Vector for $name {
             type TransposeTo = $transpose_to;
+
+            fn norme(&self) -> f64 {
+                self.dot_product(self).unwrap().sqrt()
+            }
         }
 
         impl Neg for $name {
@@ -290,6 +294,18 @@ macro_rules! impl_vector {
 
             fn div(self, vector: &$name) -> Self::Output {
                 vector / self
+            }
+        }
+
+        impl DotProduct for &$name {
+            type Output = Result<f64>;
+
+            fn dot_product(self, other: Self) -> Self::Output {
+                if self.len() != other.len() {
+                    Err(VectorOpError::SizeMismatch(self.len(), other.len()))
+                } else {
+                    Ok(self.iter().zip(other.iter()).map(|(x, y)| x * y).sum())
+                }
             }
         }
     };
@@ -663,5 +679,13 @@ mod tests {
         let mut x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
         let y = ColumnVector::from(vec![1.0, 2.0]);
         x -= y;
+    }
+
+    #[test]
+    fn test_dot_product() {
+        let x = ColumnVector::from(vec![1.0, 2.0, 3.0]);
+        let y = ColumnVector::from(vec![1.0, 0.0, 2.0]);
+        let dot = x.dot_product(&y).unwrap();
+        assert_eq!(dot, 7.0);
     }
 }
