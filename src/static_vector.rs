@@ -2,7 +2,7 @@ use std::{
     ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{dot_product::DotProduct};
+use crate::{dot_product::DotProduct, static_matrix::StaticMatrix};
 
 pub trait StaticVector<const N: usize>:
     Sized + DerefMut<Target = [f64; N]> + Clone + From<[f64; N]> + Into<[f64; N]> + Default
@@ -298,13 +298,13 @@ impl<const N: usize> DotProduct<&StaticColumnVector<N>> for &StaticRowVector<N> 
     }
 }
 
-// impl<const N: usize, const M: usize> DotProduct<&StaticRowVector<N>> for &StaticColumnVector<M> {
-//     type Output = Matrix<N, M>;
+impl<const N: usize, const M: usize> DotProduct<&StaticRowVector<M>> for &StaticColumnVector<N> {
+    type Output = StaticMatrix<N, M>;
 
-//     fn dot_product(self, row: &StaticRowVector) -> Self::Output {
-//         self.iter().copied().map(|x| row * x).collect()
-//     }
-// }
+    fn dot_product(self, row: &StaticRowVector<M>) -> Self::Output {
+        self.deref().map(|x| row * x).into()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -625,14 +625,11 @@ mod tests {
         assert_eq!(dot, 7.0);
     }
 
-    // #[test]
-    // fn test_dot_product_col_row() {
-    //     let x = StaticRowVector::from([1.0, 2.0, 3.0]);
-    //     let y = StaticColumnVector::from([3.0, 2.0]);
-    //     let mut expected_matrix = Matrix::new(y.len(), x.len());
-    //     let mat = y.dot_product(&x);
-    //     expected_matrix[0] = [3.0, 6.0, 9.0].into();
-    //     expected_matrix[1] = [2.0, 4.0, 6.0].into();
-    //     assert_eq!(mat, expected_matrix);
-    // }
+    #[test]
+    fn test_dot_product_col_row() {
+        let x = StaticRowVector::from([1.0, 2.0, 3.0]);
+        let y = StaticColumnVector::from([3.0, 2.0]);
+        let mat = y.dot_product(&x);
+        assert_eq!(mat, StaticMatrix::from([StaticRowVector::from([3.0, 6.0, 9.0]), StaticRowVector::from([2.0, 4.0, 6.0])]));
+    }
 }
