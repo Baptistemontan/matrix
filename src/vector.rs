@@ -1,15 +1,21 @@
-use std::ops::{
+use std::{ops::{
     Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
-};
+}, fmt::Display, error::Error};
 
 use crate::dot_product::DotProduct;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum VectorOpError {
-    SizeMismatch(usize, usize),
+pub struct VectorSizeMismatchError(usize, usize);
+
+impl Display for VectorSizeMismatchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Vector size mismatch: expected size {} but found size {}.", self.0, self.1)
+    }
 }
 
-type Result<T> = std::result::Result<T, VectorOpError>;
+impl Error for VectorSizeMismatchError {}
+
+type Result<T> = std::result::Result<T, VectorSizeMismatchError>;
 
 pub trait Vector:
     Sized + DerefMut<Target = [f64]> + From<Vec<f64>> + FromIterator<f64> + Into<Vec<f64>>
@@ -34,7 +40,7 @@ pub trait Vector:
         mut combiner: F,
     ) -> Result<Self> {
         if self.len() != other.len() {
-            Err(VectorOpError::SizeMismatch(self.len(), other.len()))
+            Err(VectorSizeMismatchError(self.len(), other.len()))
         } else {
             Ok(self
                 .iter()
@@ -54,7 +60,7 @@ pub trait Vector:
         mut combiner: F,
     ) -> Result<()> {
         if self.len() != other.len() {
-            Err(VectorOpError::SizeMismatch(self.len(), other.len()))
+            Err(VectorSizeMismatchError(self.len(), other.len()))
         } else {
             self.iter_mut()
                 .zip(other.iter())
@@ -302,7 +308,7 @@ macro_rules! impl_vector {
 
             fn dot_product(self, other: Self) -> Self::Output {
                 if self.len() != other.len() {
-                    Err(VectorOpError::SizeMismatch(self.len(), other.len()))
+                    Err(VectorSizeMismatchError(self.len(), other.len()))
                 } else {
                     Ok(self.iter().zip(other.iter()).map(|(x, y)| x * y).sum())
                 }
