@@ -15,6 +15,11 @@ impl Deref for Matrix {
 
 impl DerefMut for Matrix {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // DerefMut is a BAD THING to implement, the entire system rely on the fact that
+        // each row is the same size, but here we allow the user to override one of the row with
+        // a vector of a different size
+        // BAD, VERY BAD
+        // but eh, f*ck it
         &mut self.0
     }
 }
