@@ -350,13 +350,15 @@ impl<const N: usize, T: Clone + Mul<Output = T> + Sum> DotProduct<&StaticColumnV
     }
 }
 
-// impl<const N: usize, const M: usize, T> DotProduct<&StaticRowVector<M, T>> for &StaticColumnVector<N, T> {
-//     type Output = StaticMatrix<N, M, T>;
+impl<const N: usize, const M: usize, T: Mul<Output = T> + Clone> DotProduct<&StaticRowVector<M, T>>
+    for &StaticColumnVector<N, T>
+{
+    type Output = StaticMatrix<N, M, T>;
 
-//     fn dot_product(self, row: &StaticRowVector<M, T>) -> Self::Output {
-//         self.deref().map(|x| row * x).into()
-//     }
-// }
+    fn dot_product(self, row: &StaticRowVector<M, T>) -> Self::Output {
+        self.deref().clone().map(|x| row * x).into()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -677,13 +679,13 @@ mod tests {
         assert_eq!(dot, 7.0);
     }
 
-    // #[test]
-    // fn test_dot_product_col_row() {
-    //     let x = StaticRowVector::from([1.0, 2.0, 3.0]);
-    //     let y = StaticColumnVector::from([3.0, 2.0]);
-    //     let mat = y.dot_product(&x);
-    //     assert_eq!(mat, StaticMatrix::from([[3.0, 6.0, 9.0], [2.0, 4.0, 6.0]]));
-    // }
+    #[test]
+    fn test_dot_product_col_row() {
+        let x = StaticRowVector::from([1.0, 2.0, 3.0]);
+        let y = StaticColumnVector::from([3.0, 2.0]);
+        let mat = y.dot_product(&x);
+        assert_eq!(mat, StaticMatrix::from([[3.0, 6.0, 9.0], [2.0, 4.0, 6.0]]));
+    }
 
     #[test]
     fn test_cross_product() {
