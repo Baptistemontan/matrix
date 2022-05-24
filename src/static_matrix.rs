@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::static_vector::{StaticRowVector, StaticVector, StaticRowVectorf32};
+use crate::static_vector::{StaticRowVector, StaticRowVectorf32, StaticVector};
 
 macro_rules! impl_static_matrix {
     ($name:ident, $row_vector:ident, $data_type:ident) => {
@@ -56,14 +56,11 @@ macro_rules! impl_static_matrix {
                 data.map($row_vector::from).into()
             }
         }
-
-        
     };
 }
 
 impl_static_matrix!(StaticMatrix, StaticRowVector, f64);
 impl_static_matrix!(StaticMatrixf32, StaticRowVectorf32, f32);
-
 
 #[cfg(test)]
 mod tests {

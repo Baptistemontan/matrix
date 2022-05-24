@@ -2,7 +2,10 @@ use std::ops::{
     Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
-use crate::{dot_product::DotProduct, static_matrix::{StaticMatrix, StaticMatrixf32}};
+use crate::{
+    dot_product::DotProduct,
+    static_matrix::{StaticMatrix, StaticMatrixf32},
+};
 
 pub trait StaticVector<const N: usize, T: Copy + DivAssign>:
     Sized + DerefMut<Target = [T; N]> + Clone + From<[T; N]> + Into<[T; N]> + Default
@@ -326,14 +329,15 @@ impl<const N: usize> DotProduct<&StaticColumnVectorf32<N>> for &StaticRowVectorf
     }
 }
 
-impl<const N: usize, const M: usize> DotProduct<&StaticRowVectorf32<M>> for &StaticColumnVectorf32<N> {
+impl<const N: usize, const M: usize> DotProduct<&StaticRowVectorf32<M>>
+    for &StaticColumnVectorf32<N>
+{
     type Output = StaticMatrixf32<N, M>;
 
     fn dot_product(self, row: &StaticRowVectorf32<M>) -> Self::Output {
         self.deref().map(|x| row * x).into()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
