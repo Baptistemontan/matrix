@@ -18,26 +18,14 @@ pub trait StaticVector<const N: usize, T: Clone>:
         [(); N].map(|_| value.clone()).into()
     }
 
-    fn combine<F: FnMut(T, T) -> T>(&self, other: &Self, mut combiner: F) -> Self {
-        let mut i = 0;
-        self.deref()
-            .clone()
-            .map(|x| {
-                let val = combiner(x, other[i].clone());
-                i += 1;
-                val
-            })
-            .into()
-    }
-
-    fn combine_mut<F: FnMut(&mut T, T)>(&mut self, other: &Self, mut combiner: F) {
-        self.iter_mut().zip(other.iter()).for_each(|(a, b)| {
+    fn combine_mut<F, R, V>(&mut self, other: &V, mut combiner: F)
+        where F: FnMut(&mut T, R),
+            R: Clone,
+            V: StaticVector<N, R>
+    {
+        for (a, b) in self.iter_mut().zip(other.iter()) {
             combiner(a, b.clone());
-        });
-    }
-
-    fn map<F: FnMut(T) -> T>(&self, map_fn: F) -> Self {
-        self.deref().clone().map(map_fn).into()
+        }
     }
 
     fn map_mut<F: FnMut(&mut T)>(&mut self, map_fn: F) {
@@ -45,8 +33,32 @@ pub trait StaticVector<const N: usize, T: Clone>:
     }
 }
 
-pub trait NormalizeVector<const N: usize, T: DivAssign + Clone>: StaticVector<N, T> {
-    fn norme(&self) -> T;
+pub trait SquareRoot {
+    type Output;
+    fn sqrt(self) -> Self::Output;
+}
+
+impl SquareRoot for f64 {
+    type Output = f64;
+    fn sqrt(self) -> Self::Output {
+        f64::sqrt(self)
+    }
+}
+
+impl SquareRoot for f32 {
+    type Output = f32;
+    fn sqrt(self) -> Self::Output {
+        f32::sqrt(self)
+    }
+}
+
+pub trait NormalizeVector<const N: usize, T, SR = T, NR: Clone = T>: StaticVector<N, T>
+    where T: DivAssign<NR> + Clone,
+        SR: SquareRoot<Output = NR> + Sum<T>
+{
+    fn norme(&self) -> NR {
+        self.iter().cloned().sum::<SR>().sqrt()
+    }
 
     fn normalize(&mut self) {
         let norme = self.norme();
@@ -63,17 +75,33 @@ pub trait NormalizeVector<const N: usize, T: DivAssign + Clone>: StaticVector<N,
 macro_rules! impl_vector {
     ($name:ident, $transpose_to:ident) => {
         #[derive(Debug, PartialEq, Clone)]
-        pub struct $name<const N: usize, T>([T; N]);
+        pub struct $name<const N: usize, T = f64>([T; N]);
 
-        impl<T: Mul<Output = T> + Sub<Output = T> + Clone> $name<3, T> {
-            pub fn cross_product(&self, other: &Self) -> Self {
+        impl<T, S, R> $name<3, T>
+            where T: Mul<Output = S> + Clone,
+                S: Sub<Output = R>
+        {
+            pub fn cross_product(&self, other: &Self) -> $name<3, R> {
                 let [a1, a2, a3] = self.0.clone();
                 let [b1, b2, b3] = other.0.clone();
-                Self([
+                $name([
                     a2.clone() * b3.clone() - a3.clone() * b2.clone(),
                     a3 * b1.clone() - a1.clone() * b3,
                     a1 * b2 - a2 * b1,
                 ])
+            }
+        }
+
+        impl<const N: usize, T: Clone> $name<N, T> {
+            fn combine<F: FnMut(T, T) -> R, R>(&self, other: &Self, mut combiner: F) -> $name<N, R> {
+                let mut i = 0;
+                self.0.clone()
+                    .map(|x| {
+                        let val = combiner(x, other[i].clone());
+                        i += 1;
+                        val
+                    })
+                    .into()
             }
         }
 
@@ -123,11 +151,11 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<const N: usize, T: Neg<Output = T> + Clone> Neg for &$name<N, T> {
-            type Output = $name<N, T>;
+        impl<const N: usize, T: Neg<Output = R> + Clone, R> Neg for &$name<N, T> {
+            type Output = $name<N, R>;
 
             fn neg(self) -> Self::Output {
-                StaticVector::map(&self, T::neg)
+                self.0.clone().map(T::neg).into()
             }
         }
 
@@ -161,8 +189,8 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<const N: usize, T: Add<Output = T> + Clone> Add for &$name<N, T> {
-            type Output = $name<N, T>;
+        impl<const N: usize, T: Add<Output = R> + Clone, R> Add for &$name<N, T> {
+            type Output = $name<N, R>;
 
             fn add(self, other: Self) -> Self::Output {
                 self.combine(other, T::add)
@@ -199,8 +227,8 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<const N: usize, T: Sub<Output = T> + Clone> Sub for &$name<N, T> {
-            type Output = $name<N, T>;
+        impl<const N: usize, T: Sub<Output = R> + Clone, R> Sub for &$name<N, T> {
+            type Output = $name<N, R>;
 
             fn sub(self, other: Self) -> Self::Output {
                 self.combine(other, T::sub)
@@ -240,11 +268,11 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<const N: usize, T: Mul<Output = T> + Clone> Mul<T> for &$name<N, T> {
-            type Output = $name<N, T>;
+        impl<const N: usize, T: Mul<Output = R> + Clone, R> Mul<T> for &$name<N, T> {
+            type Output = $name<N, R>;
 
             fn mul(self, scalar: T) -> Self::Output {
-                self.map(|x| x * scalar.clone())
+                self.0.clone().map(|x| x * scalar.clone()).into()
             }
         }
 
@@ -297,11 +325,11 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<const N: usize, T: Div<Output = T> + Clone> Div<T> for &$name<N, T> {
-            type Output = $name<N, T>;
+        impl<const N: usize, T: Div<Output = R> + Clone, R> Div<T> for &$name<N, T> {
+            type Output = $name<N, R>;
 
             fn div(self, scalar: T) -> Self::Output {
-                self.map(|x| x / scalar.clone())
+                self.0.clone().map(|x| x / scalar.clone()).into()
             }
         }
 
@@ -321,8 +349,11 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<const N: usize, T: Mul<Output = T> + Clone + Sum> DotProduct for &$name<N, T> {
-            type Output = T;
+        impl<const N: usize, T, R> DotProduct for &$name<N, T>
+            where T: Clone + Mul<Output = R>,
+                R: Sum
+        {
+            type Output = R;
 
             fn dot_product(self, other: Self) -> Self::Output {
                 self.iter()
@@ -331,16 +362,44 @@ macro_rules! impl_vector {
                     .sum()
             }
         }
+
+        impl<const N:usize, T: Mul<Output = R> + Clone, R: Sum> Mul for &$name<N, T> {
+            type Output = R;
+
+            fn mul(self, other: Self) -> Self::Output {
+                self.dot_product(other)
+            }
+        }
+
+        impl<const N:usize, T: Mul<Output = R> + Clone, R: Sum> Mul for $name<N, T> {
+            type Output = R;
+
+            fn mul(self, other: Self) -> Self::Output {
+                &self * &other
+            }
+        }
+
+        impl<const N: usize, T> Sum for $name<N, T>
+        where
+            T: AddAssign + Clone + Default,
+        {
+            fn sum<I>(iter: I) -> Self
+            where
+                I: Iterator<Item = Self>,
+            {
+                iter.fold(Self::default(), |acc, x| acc + x)
+            }
+        }
     };
 }
 
 impl_vector!(StaticRowVector, StaticColumnVector);
 impl_vector!(StaticColumnVector, StaticRowVector);
 
-impl<const N: usize, T: Clone + Mul<Output = T> + Sum> DotProduct<&StaticColumnVector<N, T>>
+impl<const N: usize, T: Clone + Mul<Output = R>, R: Sum> DotProduct<&StaticColumnVector<N, T>>
     for &StaticRowVector<N, T>
 {
-    type Output = T;
+    type Output = R;
 
     fn dot_product(self, col: &StaticColumnVector<N, T>) -> Self::Output {
         self.iter()
@@ -350,15 +409,27 @@ impl<const N: usize, T: Clone + Mul<Output = T> + Sum> DotProduct<&StaticColumnV
     }
 }
 
-impl<const N: usize, const M: usize, T: Mul<Output = T> + Clone> DotProduct<&StaticRowVector<M, T>>
+impl<const N: usize, const M: usize, T: Mul<Output = R> + Clone, R> DotProduct<&StaticRowVector<M, T>>
     for &StaticColumnVector<N, T>
 {
-    type Output = StaticMatrix<N, M, T>;
+    type Output = StaticMatrix<N, M, R>;
 
     fn dot_product(self, row: &StaticRowVector<M, T>) -> Self::Output {
         self.deref().clone().map(|x| row * x).into()
     }
 }
+
+impl<const N: usize, const M: usize, T: Mul<Output = R> + Clone, R> Mul<&StaticRowVector<M, T>>
+    for &StaticColumnVector<N, T>
+{
+    type Output = StaticMatrix<N, M, R>;
+
+    fn mul(self, rhs: &StaticRowVector<M, T>) -> Self::Output {
+        self.dot_product(rhs)
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {
