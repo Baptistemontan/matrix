@@ -5,7 +5,7 @@ use crate::static_vector::{StaticRowVector, StaticVector};
 macro_rules! impl_static_matrix {
     ($name:ident, $row_vector:ident) => {
         #[derive(Debug, PartialEq, Clone)]
-        pub struct $name<const N: usize, const M: usize, T>([$row_vector<M, T>; N]);
+        pub struct $name<const N: usize, const M: usize, T = f64>([$row_vector<M, T>; N]);
 
         impl<const N: usize, const M: usize, T> Deref for $name<N, M, T> {
             type Target = [$row_vector<M, T>; N];
@@ -39,6 +39,7 @@ macro_rules! impl_static_matrix {
             }
 
             pub fn size(&self) -> (usize, usize) {
+                // most useless function but ok
                 (N, M)
             }
         }
@@ -65,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_default() {
-        let matrix: StaticMatrix<3, 3, f64> = StaticMatrix::default();
+        let matrix: StaticMatrix<3, 3> = StaticMatrix::default();
         assert_eq!(matrix.size(), (3, 3));
     }
 }
